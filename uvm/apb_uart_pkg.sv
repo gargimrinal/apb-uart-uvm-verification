@@ -1,0 +1,29 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 05.07.2026 09:24:50
+// Design Name: 
+// Module Name: apb_uart_pkg
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+package apb_uart_pkg;
+
+    import uvm_pkg::*;
+    `include "uvm_macros.svh"
+
+    `include "apb_transaction.sv"
+    `include "apb_sequencer.sv"
+`include "apb_driver.sv"
+endpackage
