@@ -26,4 +26,10 @@ package apb_uart_pkg;
     `include "apb_transaction.sv"
     `include "apb_sequencer.sv"
 `include "apb_driver.sv"
+`include "apb_monitor.sv"
+`include "apb_agent.sv"
+`include "apb_env.sv"
+`include "apb_write_seq.sv"
+`include "apb_read_seq.sv"
+`include "base_test.sv"
 endpackage
