@@ -44,27 +44,35 @@ virtual task run_phase(uvm_phase phase);
 
     apb_transaction tr;
 
-    forever begin
+   forever begin
 
-        @(posedge vif.PCLK);
+    @(posedge vif.PCLK);
 
-        if(vif.PSEL && vif.PENABLE) begin
+    if(vif.PSEL && vif.PENABLE && vif.PREADY) begin
 
-            tr = apb_transaction::type_id::create("tr");
+        tr = apb_transaction::type_id::create("tr");
 
-            tr.addr  = vif.PADDR;
-            tr.write = vif.PWRITE;
+        tr.addr  = vif.PADDR;
+        tr.write = vif.PWRITE;
 
-            if(tr.write)
-                tr.wdata = vif.PWDATA;
-            else
-                tr.rdata = vif.PRDATA;
+        if(tr.write)
+            tr.wdata = vif.PWDATA;
+        else
+            tr.rdata = vif.PRDATA;
 
-            ap.write(tr);
+        ap.write(tr);
 
-        end
+        if(tr.write)
+            `uvm_info("MONITOR",
+                $sformatf("WRITE ADDR=0x%0h DATA=0x%0h",
+                tr.addr, tr.wdata), UVM_MEDIUM)
+        else
+            `uvm_info("MONITOR",
+                $sformatf("READ ADDR=0x%0h DATA=0x%0h",
+                tr.addr, tr.rdata), UVM_MEDIUM)
 
     end
 
+end
 endtask
 endclass
