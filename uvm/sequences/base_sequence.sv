@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 09.07.2026 14:38:26
+// Create Date: 10.07.2026 19:05:37
 // Design Name: 
-// Module Name: apb_write_seq
+// Module Name: base_sequence
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -18,30 +18,20 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
+`timescale 1ns / 1ps
 
+class base_sequence extends uvm_sequence #(apb_transaction);
 
-class apb_write_seq extends base_sequence;
+    `uvm_object_utils(base_sequence)
 
-    `uvm_object_utils(apb_write_seq)
-
-    apb_transaction tr;
-
-    function new(string name = "apb_write_seq");
+    function new(string name = "base_sequence");
         super.new(name);
     endfunction
 
     virtual task body();
-
-        tr = apb_transaction::type_id::create("tr");
-
-        start_item(tr);
-
-        tr.addr  = 12'h000;
-        tr.wdata = 32'hA5A5_1234;
-        tr.write = 1'b1;
-
-        finish_item(tr);
-
+        `uvm_info(get_type_name(),
+                  "Starting Base Sequence",
+                  UVM_LOW)
     endtask
 
 endclass

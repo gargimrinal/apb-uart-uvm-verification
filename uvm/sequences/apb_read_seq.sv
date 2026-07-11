@@ -18,9 +18,9 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-`timescale 1ns/1ps
 
-class apb_read_seq extends uvm_sequence #(apb_transaction);
+
+class apb_read_seq extends base_sequence;
 
     `uvm_object_utils(apb_read_seq)
 
