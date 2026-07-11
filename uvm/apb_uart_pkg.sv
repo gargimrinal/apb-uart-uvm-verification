@@ -28,8 +28,13 @@ package apb_uart_pkg;
 `include "apb_driver.sv"
 `include "apb_monitor.sv"
 `include "apb_agent.sv"
+`include "apb_scoreboard.sv"
+`include "apb_coverage.sv"
 `include "apb_env.sv"
+`include "base_sequence.sv"
 `include "apb_write_seq.sv"
 `include "apb_read_seq.sv"
+`include "random_sequence.sv"
+  `include "apb_write_read_seq.sv"
 `include "base_test.sv"
 endpackage
