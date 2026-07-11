@@ -22,69 +22,57 @@
 //
 // Module Name: apb_scoreboard
 // Description:
-// Simple APB UART Scoreboard with Register Mirror
-//////////////////////////////////////////////////////////////////////////////////
 
 class apb_scoreboard extends uvm_scoreboard;
 
     `uvm_component_utils(apb_scoreboard)
 
-
-
+    // Analysis implementation port
     uvm_analysis_imp #(apb_transaction, apb_scoreboard) analysis_imp;
 
-    
+    // Reference model (8-bit UART registers)
+    bit [7:0] reg_model [0:7];
 
-    bit [31:0] reg_model [0:7];
-
-   
-
+    // Constructor
     function new(string name = "apb_scoreboard",
                  uvm_component parent = null);
         super.new(name, parent);
     endfunction
 
-   
-
+    // Build phase
     virtual function void build_phase(uvm_phase phase);
         super.build_phase(phase);
 
         analysis_imp = new("analysis_imp", this);
 
         foreach (reg_model[i])
-            reg_model[i] = 32'h0;
+            reg_model[i] = 8'h00;
     endfunction
 
-    
-
+    // Receive transactions from monitor
     virtual function void write(apb_transaction tr);
-
-        
 
         if (tr.write) begin
 
             case (tr.addr)
 
-                // Software writable registers
-                3'h1,
-                3'h3,
-                3'h4,
-                3'h7:
+                // Implemented writable registers
+                3'h1,   // IER
+                3'h3:   // LCR
                 begin
-                    reg_model[tr.addr] = tr.wdata;
+                    reg_model[tr.addr] = tr.wdata[7:0];
                 end
 
-                default:
-                begin
-                    // THR/RBR/DLL etc.
+                default: begin
+                    // THR/FCR/FIFO/status registers are not mirrored
                 end
 
             endcase
 
             `uvm_info("SCOREBOARD",
-                $sformatf("WRITE : ADDR = 0x%0h DATA = 0x%0h",
+                $sformatf("WRITE : ADDR = 0x%0h DATA = 0x%02h",
                           tr.addr,
-                          tr.wdata),
+                          tr.wdata[7:0]),
                 UVM_MEDIUM)
 
         end
@@ -92,41 +80,38 @@ class apb_scoreboard extends uvm_scoreboard;
         else begin
 
             case (tr.addr)
-                3'h1,
-                3'h3,
-                3'h4,
-                3'h7:
-                begin
 
-                    if (reg_model[tr.addr] == tr.rdata) begin
+                // Implemented readable mirrored registers
+                3'h1,   // IER
+                3'h3:   // LCR
+                begin
+                    if (reg_model[tr.addr] == tr.rdata[7:0]) begin
 
                         `uvm_info("SCOREBOARD",
-                            $sformatf("PASS : ADDR = 0x%0h EXPECTED = 0x%0h ACTUAL = 0x%0h",
+                            $sformatf("PASS : ADDR = 0x%0h EXPECTED = 0x%02h ACTUAL = 0x%02h",
                                       tr.addr,
                                       reg_model[tr.addr],
-                                      tr.rdata),
+                                      tr.rdata[7:0]),
                             UVM_LOW)
 
                     end
                     else begin
 
                         `uvm_error("SCOREBOARD",
-                            $sformatf("FAIL : ADDR = 0x%0h EXPECTED = 0x%0h ACTUAL = 0x%0h",
+                            $sformatf("FAIL : ADDR = 0x%0h EXPECTED = 0x%02h ACTUAL = 0x%02h",
                                       tr.addr,
                                       reg_model[tr.addr],
-                                      tr.rdata))
+                                      tr.rdata[7:0]))
 
                     end
-
                 end
 
-                default:
-                begin
+                default: begin
 
                     `uvm_info("SCOREBOARD",
-                        $sformatf("READ : ADDR = 0x%0h DATA = 0x%0h (Not Checked)",
+                        $sformatf("READ : ADDR = 0x%0h DATA = 0x%02h (Not Checked)",
                                   tr.addr,
-                                  tr.rdata),
+                                  tr.rdata[7:0]),
                         UVM_LOW)
 
                 end
