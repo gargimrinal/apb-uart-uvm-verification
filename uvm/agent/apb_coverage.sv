@@ -27,62 +27,72 @@ class apb_coverage extends uvm_subscriber #(apb_transaction);
     // Transaction handle
     apb_transaction tr;
 
-    
-    covergroup apb_cg;
+   covergroup apb_cg;
 
-        option.per_instance = 1;
+    option.per_instance = 1;
 
-        
-        cp_addr : coverpoint tr.addr
-        {
-            bins reg0 = {12'h000};
-            bins reg1 = {12'h001};
-            bins reg2 = {12'h002};
-            bins reg3 = {12'h003};
-            bins others[] = {[12'h004:12'hFFF]};
-        }
+    //----------------------------------------------------
+    // Read / Write
+    //----------------------------------------------------
+    cp_rw : coverpoint tr.write
+    {
+        bins READ  = {0};
+        bins WRITE = {1};
+    }
 
-        
-        cp_rw : coverpoint tr.write
-        {
-            bins READ  = {0};
-            bins WRITE = {1};
-        }
+    //----------------------------------------------------
+    // Write Data Coverage
+    //----------------------------------------------------
+    cp_wdata : coverpoint tr.wdata[7:0] iff (tr.write)
+    {
+        bins zero = {8'h00};
+        bins ff   = {8'hFF};
 
-       
-        cp_wdata : coverpoint tr.wdata[7:0] iff (tr.write)
-        {
-            bins zero = {8'h00};
-            bins ff   = {8'hFF};
+        bins low[]  = {[8'h01:8'h3F]};
+        bins mid[]  = {[8'h40:8'hBF]};
+        bins high[] = {[8'hC0:8'hFE]};
+    }
 
-            bins low[]  = {[8'h01:8'h3F]};
-            bins mid[]  = {[8'h40:8'hBF]};
-            bins high[] = {[8'hC0:8'hFE]};
-        }
+    //----------------------------------------------------
+    // Read Data Coverage
+    //----------------------------------------------------
+    cp_rdata : coverpoint tr.rdata[7:0] iff (!tr.write)
+    {
+        bins zero = {8'h00};
+        bins ff   = {8'hFF};
 
-       
-        cp_rdata : coverpoint tr.rdata[7:0] iff (!tr.write)
-        {
-            bins zero = {8'h00};
-            bins ff   = {8'hFF};
+        bins low[]  = {[8'h01:8'h3F]};
+        bins mid[]  = {[8'h40:8'hBF]};
+        bins high[] = {[8'hC0:8'hFE]};
+    }
 
-            bins low[]  = {[8'h01:8'h3F]};
-            bins mid[]  = {[8'h40:8'hBF]};
-            bins high[] = {[8'hC0:8'hFE]};
-        }
+    //----------------------------------------------------
+    // Address Coverage
+    //----------------------------------------------------
+    cp_addr : coverpoint tr.addr
+    {
+        bins THR_RBR_DLL = {12'h0};
+        bins IER_DLM     = {12'h1};
+        bins FCR_IIR     = {12'h2};
+        bins LCR         = {12'h3};
+        bins LSR         = {12'h5};
 
+        // Registers not implemented through APB
+        ignore_bins unused = {12'h4, 12'h6, 12'h7};
+    }
 
-        addr_rw_cross : cross cp_addr, cp_rw;
+    //----------------------------------------------------
+    // Cross Coverage
+    //----------------------------------------------------
+    addr_rw_cross : cross cp_addr, cp_rw;
 
-    endgroup
-
-
-    function new(string name = "apb_coverage",
+endgroup    function new(string name = "apb_coverage",
                  uvm_component parent = null);
 
         super.new(name, parent);
 
         apb_cg = new();
+ 
 
     endfunction
 
@@ -92,23 +102,12 @@ class apb_coverage extends uvm_subscriber #(apb_transaction);
         tr = t;
 
         apb_cg.sample();
+endfunction 
+
+function real get_coverage_percentage();
+    return apb_cg.get_coverage();
 
     endfunction
 
-  function void report_phase(uvm_phase phase);
 
-    super.report_phase(phase);
-
-    `uvm_info("COVERAGE",
-    $sformatf(
-"\n\
-=================================================\n\
-        APB FUNCTIONAL COVERAGE REPORT\n\
-=================================================\n\
-Overall Functional Coverage : %0.2f%%\n\
-=================================================",
-    apb_cg.get_coverage()),
-    UVM_NONE)
-
-endfunction
 endclass

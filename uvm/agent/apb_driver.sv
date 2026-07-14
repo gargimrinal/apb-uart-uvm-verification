@@ -25,31 +25,32 @@ class apb_driver extends uvm_driver #(apb_transaction);
     endfunction
 
     // Run Phase
-    virtual task run_phase(uvm_phase phase);
+  virtual task run_phase(uvm_phase phase);
 
-        // Initialize APB bus to idle
-        vif.PSEL    <= 0;
-        vif.PENABLE <= 0;
-        vif.PWRITE  <= 0;
-        vif.PADDR   <= '0;
-        vif.PWDATA  <= '0;
+    // Drive idle values immediately
+    vif.PSEL    <= 0;
+    vif.PENABLE <= 0;
+    vif.PWRITE  <= 0;
+    vif.PADDR   <= '0;
+    vif.PWDATA  <= '0;
 
-        forever begin
+    // Wait until reset is released
+    @(posedge vif.PRESETn);
 
-            seq_item_port.get_next_item(req);
+    forever begin
 
-            if(req.write)
-                apb_write(req);
-            else
-                apb_read(req);
+        seq_item_port.get_next_item(req);
 
-            seq_item_port.item_done();
+        if(req.write)
+            apb_write(req);
+        else
+            apb_read(req);
 
-        end
+        seq_item_port.item_done();
 
-    endtask
+    end
 
-
+endtask
     //--------------------------------------------------------
     // APB WRITE
     //--------------------------------------------------------

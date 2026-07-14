@@ -26,6 +26,7 @@ class apb_env extends uvm_env;
     apb_agent agent;
     apb_scoreboard sb;
 apb_coverage cov;
+uart_env uart_env_h;
 
     function new(string name="apb_env",
                  uvm_component parent=null);
@@ -38,6 +39,8 @@ apb_coverage cov;
         agent = apb_agent::type_id::create("agent", this);
         sb    = apb_scoreboard::type_id::create("sb", this);
 cov = apb_coverage::type_id::create("cov", this);
+
+uart_env_h = uart_env::type_id::create("uart_env_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);

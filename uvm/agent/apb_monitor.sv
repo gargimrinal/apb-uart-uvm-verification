@@ -47,6 +47,7 @@ virtual task run_phase(uvm_phase phase);
    forever begin
 
     @(posedge vif.PCLK);
+#1;
 
     if(vif.PSEL && vif.PENABLE && vif.PREADY) begin
 
