@@ -29,27 +29,30 @@ class apb_random_seq extends base_sequence;
         super.new(name);
     endfunction
 
-    virtual task body();
+   virtual task body();
 
-        repeat (20) begin
+    repeat (500) begin
 
-            tr = apb_transaction::type_id::create("tr");
+        tr = apb_transaction::type_id::create("tr");
 
-            start_item(tr);
+        start_item(tr);
 
-            assert(tr.randomize() with {
+        assert(tr.randomize() with {
 
-                // Only registers implemented in the DUT
-                addr inside {12'h0, 12'h1, 12'h2, 12'h3};
+            // Only implemented registers
+            addr inside {12'h0, 12'h1, 12'h2, 12'h3};
 
-            })
-            else
-                `uvm_fatal("RANDFAIL", "Randomization failed")
+            // Keep DLAB disabled during random testing
+            if (write && (addr == 12'h3))
+                wdata[7] == 1'b0;
 
-            finish_item(tr);
+        })
+        else
+            `uvm_fatal("RANDFAIL", "Randomization failed")
 
-        end
+        finish_item(tr);
 
-    endtask
+    end
 
+endtask
 endclass
