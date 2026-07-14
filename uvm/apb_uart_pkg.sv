@@ -24,6 +24,11 @@ package apb_uart_pkg;
     `include "uvm_macros.svh"
 
     `include "apb_transaction.sv"
+`include "uart_transaction.sv"
+`include "uart_monitor.sv"
+`include "uart_scoreboard.sv"
+`include "uart_coverage.sv"
+`include "uart_env.sv"
     `include "apb_sequencer.sv"
 `include "apb_driver.sv"
 `include "apb_monitor.sv"
@@ -36,5 +41,7 @@ package apb_uart_pkg;
 `include "apb_read_seq.sv"
 `include "random_sequence.sv"
   `include "apb_write_read_seq.sv"
+  `include "regression_sequence.sv"
+`include "uart_config_seq.sv"
 `include "base_test.sv"
 endpackage
