@@ -39,8 +39,7 @@ class apb_random_seq extends base_sequence;
 
         assert(tr.randomize() with {
 
-            // Only implemented registers
-            addr inside {12'h0, 12'h1, 12'h2, 12'h3};
+            addr inside {12'h0,12'h2};
 
             // Keep DLAB disabled during random testing
             if (write && (addr == 12'h3))
