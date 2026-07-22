@@ -14,112 +14,202 @@
 //
 // Revision:
 // Revision 0.01 - File Created
-//////////////////////////////////////////////////////////////////////////////////
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company:
-// Engineer:
-//
-// Module Name: apb_scoreboard
-// Description:
 
 class apb_scoreboard extends uvm_scoreboard;
 
     `uvm_component_utils(apb_scoreboard)
 
-    // Analysis implementation port
+    // Analysis port
     uvm_analysis_imp #(apb_transaction, apb_scoreboard) analysis_imp;
 
-    // Reference model (8-bit UART registers)
-    bit [7:0] reg_model [0:7];
+    //----------------------------------------------------
+    // UART Register Model
+    //----------------------------------------------------
+    bit [7:0] ier_model;
+    bit [7:0] lcr_model;
+    bit [7:0] dll_model;
+    bit [7:0] dlm_model;
 
+    bit dlab_mode;
+
+    //----------------------------------------------------
     // Constructor
-    function new(string name = "apb_scoreboard",
-                 uvm_component parent = null);
-        super.new(name, parent);
+    //----------------------------------------------------
+    function new(string name="apb_scoreboard",
+                 uvm_component parent=null);
+        super.new(name,parent);
     endfunction
 
-    // Build phase
+    //----------------------------------------------------
+    // Build
+    //----------------------------------------------------
     virtual function void build_phase(uvm_phase phase);
         super.build_phase(phase);
 
         analysis_imp = new("analysis_imp", this);
 
-        foreach (reg_model[i])
-            reg_model[i] = 8'h00;
+        ier_model = 8'h00;
+        lcr_model = 8'h00;
+        dll_model = 8'h00;
+        dlm_model = 8'h00;
+
+        dlab_mode = 1'b0;
     endfunction
 
-    // Receive transactions from monitor
-    virtual function void write(apb_transaction tr);
+    //----------------------------------------------------
+    // Receive APB transactions
+    //----------------------------------------------------
+ virtual function void write(apb_transaction tr);
 
-        if (tr.write) begin
+    //-----------------------------------------
+    // WRITE Transactions
+    //-----------------------------------------
+    if (tr.write) begin
 
-            case (tr.addr)
+        case (tr.addr)
 
-                // Implemented writable registers
-                3'h1,   // IER
-                3'h3:   // LCR
-                begin
-                    reg_model[tr.addr] = tr.wdata[7:0];
+            // Address 0x0 : THR / DLL
+            12'h0: begin
+                if (dlab_mode)
+                    dll_model = tr.wdata[7:0];
+            end
+
+            // Address 0x1 : IER / DLM
+            12'h1: begin
+                if (dlab_mode)
+                    dlm_model = tr.wdata[7:0];
+                else
+                    ier_model = tr.wdata[7:0];
+            end
+
+            // Address 0x3 : LCR
+            12'h3: begin
+                lcr_model = tr.wdata[7:0];
+                dlab_mode = tr.wdata[7];
+            end
+
+            default: begin
+            end
+
+        endcase
+
+        `uvm_info("SCOREBOARD",
+            $sformatf("WRITE : ADDR=0x%0h DATA=0x%02h",
+                      tr.addr,
+                      tr.wdata[7:0]),
+            UVM_MEDIUM);
+
+    end
+
+    //-----------------------------------------
+    // READ Transactions
+    //-----------------------------------------
+    else begin
+
+        case (tr.addr)
+
+            //-------------------------------------------------
+            // Address 0x0 : RBR / DLL
+            //-------------------------------------------------
+            12'h0: begin
+
+                if (dlab_mode) begin
+
+                    `uvm_info("SCOREBOARD",
+                        $sformatf("READ DLL : DATA=0x%02h (Not Checked)",
+                                  tr.rdata[7:0]),
+                        UVM_LOW);
+
+                end
+                else begin
+
+                    `uvm_info("SCOREBOARD",
+                        $sformatf("READ RBR : DATA=0x%02h (Not Checked)",
+                                  tr.rdata[7:0]),
+                        UVM_LOW);
+
                 end
 
-                default: begin
-                    // THR/FCR/FIFO/status registers are not mirrored
+            end
+
+            //-------------------------------------------------
+            // Address 0x1 : IER / DLM
+            //-------------------------------------------------
+            12'h1: begin
+
+                if (dlab_mode) begin
+
+                    `uvm_info("SCOREBOARD",
+                        $sformatf("READ DLM : DATA=0x%02h (Not Checked)",
+                                  tr.rdata[7:0]),
+                        UVM_LOW);
+
                 end
+                else begin
 
-            endcase
-
-            `uvm_info("SCOREBOARD",
-                $sformatf("WRITE : ADDR = 0x%0h DATA = 0x%02h",
-                          tr.addr,
-                          tr.wdata[7:0]),
-                UVM_MEDIUM)
-
-        end
-
-        else begin
-
-            case (tr.addr)
-
-                // Implemented readable mirrored registers
-                3'h1,   // IER
-                3'h3:   // LCR
-                begin
-                    if (reg_model[tr.addr] == tr.rdata[7:0]) begin
+                    if (ier_model == tr.rdata[7:0]) begin
 
                         `uvm_info("SCOREBOARD",
-                            $sformatf("PASS : ADDR = 0x%0h EXPECTED = 0x%02h ACTUAL = 0x%02h",
-                                      tr.addr,
-                                      reg_model[tr.addr],
+                            $sformatf("PASS : IER EXPECTED=0x%02h ACTUAL=0x%02h",
+                                      ier_model,
                                       tr.rdata[7:0]),
-                            UVM_LOW)
+                            UVM_LOW);
 
                     end
                     else begin
 
                         `uvm_error("SCOREBOARD",
-                            $sformatf("FAIL : ADDR = 0x%0h EXPECTED = 0x%02h ACTUAL = 0x%02h",
-                                      tr.addr,
-                                      reg_model[tr.addr],
-                                      tr.rdata[7:0]))
+                            $sformatf("FAIL : IER EXPECTED=0x%02h ACTUAL=0x%02h",
+                                      ier_model,
+                                      tr.rdata[7:0]));
 
                     end
+
                 end
 
-                default: begin
+            end
+
+            //-------------------------------------------------
+            // Address 0x3 : LCR
+            //-------------------------------------------------
+            12'h3: begin
+
+                if (lcr_model == tr.rdata[7:0]) begin
 
                     `uvm_info("SCOREBOARD",
-                        $sformatf("READ : ADDR = 0x%0h DATA = 0x%02h (Not Checked)",
-                                  tr.addr,
+                        $sformatf("PASS : LCR EXPECTED=0x%02h ACTUAL=0x%02h",
+                                  lcr_model,
                                   tr.rdata[7:0]),
-                        UVM_LOW)
+                        UVM_LOW);
+
+                end
+                else begin
+
+                    `uvm_error("SCOREBOARD",
+                        $sformatf("FAIL : LCR EXPECTED=0x%02h ACTUAL=0x%02h",
+                                  lcr_model,
+                                  tr.rdata[7:0]));
 
                 end
 
-            endcase
+            end
 
-        end
+            //-------------------------------------------------
+            // Other Registers
+            //-------------------------------------------------
+            default: begin
 
-    endfunction
+                `uvm_info("SCOREBOARD",
+                    $sformatf("READ : ADDR=0x%0h DATA=0x%02h (Not Checked)",
+                              tr.addr,
+                              tr.rdata[7:0]),
+                    UVM_LOW);
 
+            end
+
+        endcase
+
+    end
+
+endfunction
 endclass

@@ -1,23 +1,5 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 14.07.2026 09:34:23
-// Design Name: 
-// Module Name: uart_monitor
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+`timescale 1ns/1ps
+
 class uart_monitor extends uvm_monitor;
 
     `uvm_component_utils(uart_monitor)
@@ -29,52 +11,135 @@ class uart_monitor extends uvm_monitor;
     function new(string name="uart_monitor",
                  uvm_component parent=null);
         super.new(name,parent);
-        ap = new("ap", this);
+        ap = new("ap",this);
     endfunction
+
 
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
 
         if(!uvm_config_db#(virtual uart_if)::get(this,"","uart_vif",vif))
-            `uvm_fatal("UART_MON","Failed to get uart_vif")
+            `uvm_fatal("UART_MON","Cannot get uart_if")
     endfunction
+
 task run_phase(uvm_phase phase);
 
     uart_transaction tr;
 
+    int baud_cycles;
+    int nbits;
+
     forever begin
 
-        @(posedge vif.clk);
+        //--------------------------------------------
+        // Wait for start bit
+        //--------------------------------------------
+        @(negedge vif.tx);
 
-        // Sample only when UART activity is present
-        if (vif.tx != 1'b1 || vif.rx != 1'b1 || vif.event_o) begin
+        tr = uart_transaction::type_id::create("tr");
 
-            tr = uart_transaction::type_id::create("tr");
+        tr.timestamp     = $time;
+        tr.start_bit     = 1'b1;
 
-            tr.tx      = vif.tx;
-            tr.rx      = vif.rx;
-            tr.event_o = vif.event_o;
+        tr.parity_enable = vif.parity_enable;
+        tr.data_bits     = vif.data_bits;
+        tr.stop_bits     = vif.stop_bits;
 
-            // Basic protocol information
-            tr.start_bit = (vif.tx == 1'b0);
-            tr.stop_bit  = (vif.tx == 1'b1);
+        baud_cycles = (vif.baud_div == 0) ? 1 : vif.baud_div;
 
-            // Placeholders until we implement frame decoding
-            tr.data   = 8'h00;
-            tr.parity = 1'b0;
+        case(tr.data_bits)
+            2'b00 : nbits = 5;
+            2'b01 : nbits = 6;
+            2'b10 : nbits = 7;
+            default: nbits = 8;
+        endcase
 
-            ap.write(tr);
+        tr.data = '0;
 
-            `uvm_info("UART_MON",
-                $sformatf("TX=%0b RX=%0b START=%0b STOP=%0b EVENT=%0b",
-                          tr.tx,
-                          tr.rx,
-                          tr.start_bit,
-                          tr.stop_bit,
-                          tr.event_o),
-                UVM_MEDIUM)
+        //--------------------------------------------
+        // Move to center of first data bit
+        //--------------------------------------------
+        repeat((baud_cycles*3)/2)
+            @(posedge vif.clk);
+
+        //--------------------------------------------
+        // Sample data bits
+        //--------------------------------------------
+        for(int i=0;i<nbits;i++) begin
+
+            tr.data[i] = vif.tx;
+
+            if(i != nbits-1)
+                repeat(baud_cycles)
+                    @(posedge vif.clk);
 
         end
+
+        //--------------------------------------------
+        // Move to parity/stop
+        //--------------------------------------------
+        repeat(baud_cycles)
+            @(posedge vif.clk);
+
+        //--------------------------------------------
+        // Sample parity
+        //--------------------------------------------
+        if(tr.parity_enable) begin
+
+            tr.parity = vif.tx;
+
+            repeat(baud_cycles)
+                @(posedge vif.clk);
+
+        end
+        else
+            tr.parity = 1'b0;
+
+        //--------------------------------------------
+        // Sample stop bit immediately
+        //--------------------------------------------
+        tr.stop_bit = vif.tx;
+
+        if(tr.stop_bits)
+            repeat(baud_cycles)
+                @(posedge vif.clk);
+
+        //--------------------------------------------
+        // Latch status pulses
+        //--------------------------------------------
+        tr.rx_valid     = 0;
+        tr.parity_error = 0;
+        tr.event_o      = 0;
+
+        repeat(5) begin
+            @(posedge vif.clk);
+
+            if(vif.rx_valid)
+                tr.rx_valid = 1;
+
+            if(vif.parity_error)
+                tr.parity_error = 1;
+
+            if(vif.event_o)
+                tr.event_o = 1;
+        end
+
+        //--------------------------------------------
+        // Publish transaction
+        //--------------------------------------------
+        ap.write(tr);
+
+        `uvm_info("UART_MON",
+            $sformatf(
+            "DATA=%02h START=%0b STOP=%0b PARITY=%0b RX_VALID=%0b EVENT=%0b PARITY_ERR=%0b",
+            tr.data,
+            tr.start_bit,
+            tr.stop_bit,
+            tr.parity,
+            tr.rx_valid,
+            tr.event_o,
+            tr.parity_error),
+            UVM_MEDIUM)
 
     end
 
