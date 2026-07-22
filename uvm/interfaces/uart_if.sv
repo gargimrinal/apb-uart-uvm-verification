@@ -1,32 +1,43 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 03.07.2026 09:05:18
-// Design Name: 
+// Company:
+// Engineer:
+//
+// Create Date: 03.07.2026
+// Design Name:
 // Module Name: uart_if
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
 //////////////////////////////////////////////////////////////////////////////////
+
 interface uart_if(input logic clk);
 
+    //--------------------------------------------------
+    // Reset
+    //--------------------------------------------------
     logic rst_n;
 
-    // UART serial lines
+    //--------------------------------------------------
+    // UART Serial Pins
+    //--------------------------------------------------
     logic tx;
     logic rx;
 
-    // Interrupt
+    //--------------------------------------------------
+    // Interrupt/Event
+    //--------------------------------------------------
     logic event_o;
+
+    //--------------------------------------------------
+    // UART Configuration (from DUT)
+    //--------------------------------------------------
+    logic [15:0] baud_div;
+    logic [1:0]  data_bits;
+    logic        parity_enable;
+    logic        stop_bits;
+
+    //--------------------------------------------------
+    // UART Status (from DUT)
+    //--------------------------------------------------
+    logic        rx_valid;
+    logic        parity_error;
 
 endinterface
