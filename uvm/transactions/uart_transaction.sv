@@ -1,46 +1,63 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 14.07.2026 09:31:37
-// Design Name: 
-// Module Name: uart_transaction
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
+`timescale 1ns/1ps
+
 class uart_transaction extends uvm_sequence_item;
 
-    // Raw UART pins
-    bit tx;
-    bit rx;
-    bit event_o;
+    `uvm_object_utils(uart_transaction)
 
-    // Protocol information
+    //--------------------------------------------
+    // UART Frame
+    //--------------------------------------------
+    rand bit [7:0] data;
+
     bit start_bit;
     bit stop_bit;
-    bit [7:0] data;
     bit parity;
 
-    `uvm_object_utils_begin(uart_transaction)
-        `uvm_field_int(tx,        UVM_ALL_ON)
-        `uvm_field_int(rx,        UVM_ALL_ON)
-        `uvm_field_int(event_o,   UVM_ALL_ON)
-        `uvm_field_int(start_bit, UVM_ALL_ON)
-        `uvm_field_int(stop_bit,  UVM_ALL_ON)
-        `uvm_field_int(data,      UVM_ALL_ON)
-        `uvm_field_int(parity,    UVM_ALL_ON)
-    `uvm_object_utils_end
+    //--------------------------------------------
+    // UART Configuration
+    //--------------------------------------------
+    bit [1:0] data_bits;
+    bit parity_enable;
+    bit stop_bits;
+
+    bit [15:0] baud_div;
+
+    //--------------------------------------------
+    // DUT Status
+    //--------------------------------------------
+    bit rx_valid;
+    bit parity_error;
+    bit event_o;
+
+    //--------------------------------------------
+    // Statistics
+    //--------------------------------------------
+    time timestamp;
 
     function new(string name="uart_transaction");
         super.new(name);
+    endfunction
+
+    //------------------------------------------------------------
+    // Print
+    //------------------------------------------------------------
+    function string convert2string();
+
+        return $sformatf(
+            "DATA=%02h START=%0b STOP=%0b PARITY=%0b BITS=%0d PAR_EN=%0b STOP2=%0b BAUD=%0d RX_VALID=%0b EVENT=%0b PAR_ERR=%0b",
+            data,
+            start_bit,
+            stop_bit,
+            parity,
+            data_bits,
+            parity_enable,
+            stop_bits,
+            baud_div,
+            rx_valid,
+            event_o,
+            parity_error
+        );
+
     endfunction
 
 endclass
